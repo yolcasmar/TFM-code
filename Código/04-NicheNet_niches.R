@@ -192,18 +192,6 @@ lfc_plot[[1]]$labels$x <- "LFC del ligando\n en Emisores"
 lfc_plot[[1]]$labels$fill <- "Ligando:\nLFC min vs\notros niches"
 lfc_plot
 
-# Circos plot de los pares ligando-receptor prioritarios
-# Como un top50 es demasiado para visualizar en un circos, se visualiza solo el top15
-
-filtered_ligands = ligand_prioritized_tbl_oi %>% filter(receiver == receiver_oi) %>% top_n(15, prioritization_score) %>% pull(ligand) %>% unique()
-
-prioritized_tbl_oi = prioritization_tables$prioritization_tbl_ligand_receptor %>% filter(ligand %in% filtered_ligands) %>% select(niche, sender, receiver, ligand,  receptor, ligand_receptor, prioritization_score) %>% distinct() %>% inner_join(top_ligand_receptor_niche_df) %>% group_by(ligand) %>% filter(receiver == receiver_oi) %>% top_n(2, prioritization_score) %>% ungroup() 
-
-colors_sender = brewer.pal(n = prioritized_tbl_oi$sender %>% unique() %>% sort() %>% length(), name = 'Spectral') %>% magrittr::set_names(prioritized_tbl_oi$sender %>% unique() %>% sort())
-colors_receiver = c("lavender")  %>% magrittr::set_names(prioritized_tbl_oi$receiver %>% unique() %>% sort())
-
-circos_output = make_circos_lr(prioritized_tbl_oi, colors_sender, colors_receiver)
-
 # Lo mismo para el otro grupo
 receiver_oi <- "Stroma_WOI"  
 filtered_ligands <- ligand_prioritized_tbl_oi %>% filter(receiver == receiver_oi) %>% top_n(50, prioritization_score) %>% pull(ligand) %>% unique()
@@ -218,17 +206,7 @@ lfc_plot2[[1]]$labels$x <- "LFC del ligando\n en Emisores"
 lfc_plot2[[1]]$labels$fill <- "Ligando:\nLFC min vs\notros niches"
 lfc_plot2
 
-filtered_ligands = ligand_prioritized_tbl_oi %>% filter(receiver == receiver_oi) %>% top_n(15, prioritization_score) %>% pull(ligand) %>% unique()
-
-prioritized_tbl_oi = prioritization_tables$prioritization_tbl_ligand_receptor %>% filter(ligand %in% filtered_ligands) %>% select(niche, sender, receiver, ligand,  receptor, ligand_receptor, prioritization_score) %>% distinct() %>% inner_join(top_ligand_receptor_niche_df) %>% group_by(ligand) %>% filter(receiver == receiver_oi) %>% top_n(2, prioritization_score) %>% ungroup() 
-
-colors_sender = brewer.pal(n = prioritized_tbl_oi$sender %>% unique() %>% sort() %>% length(), name = 'Spectral') %>% magrittr::set_names(prioritized_tbl_oi$sender %>% unique() %>% sort())
-colors_receiver = c("lavender")  %>% magrittr::set_names(prioritized_tbl_oi$receiver %>% unique() %>% sort())
-
-circos_output = make_circos_lr(prioritized_tbl_oi, colors_sender, colors_receiver)
-
-
-## Pasos para la creación de circos con los grupos anteriores invertidos, los tipos celulares sender como receptores y viceversa
+## Pasos para los grupos anteriores invertidos, los tipos celulares sender como receptores y viceversa
 # Se siguen los pasos anteriores hasta obtener las tablas con las interacciones prioritarias para cada interacción estroma epitelio
 # Los epitelios se calculan uno a uno porque no puede usarse más de un tipo celular receptor para calcular la expresión diferencial
 
@@ -923,14 +901,6 @@ lfc_plot[[1]]$labels$x <- "LFC del ligando\n en Emisores"
 lfc_plot[[1]]$labels$fill <- "Ligando:\nLFC min vs\notros niches"
 lfc_plot
 
-# Hacer el circos con el df combinado
-filtered_ligands = combined_AS_df %>% filter(receiver == receiver_oi) %>% top_n(15, prioritization_score) %>% pull(ligand) %>% unique()
-
-colors_sender = c("lavender")  %>% magrittr::set_names(combined_AS_df$sender %>% unique() %>% sort())
-colors_receiver = brewer.pal(n = combined_AS_df$receiver %>% unique() %>% sort() %>% length(), name = 'Spectral') %>% magrittr::set_names(combined_AS_df$receiver %>% unique() %>% sort())
-
-circos_output = make_circos_lr(combined_AS_df, colors_sender, colors_receiver)
-
 ## Cargar los dataframes del grupo WOI
 lumenal_WOI <- readRDS("../Results/df_stroma_epi/stroma_epilumenal_WOI.rds")
 ciliated_WOI <- readRDS("../Results/df_stroma_epi/stroma_epiciliated_WOI.rds")
@@ -949,11 +919,3 @@ lfc_plot[[1]]$labels$y <- "Pares Ligando-Receptor priorizados"
 lfc_plot[[1]]$labels$x <- "LFC del ligando\n en Emisores"
 lfc_plot[[1]]$labels$fill <- "Ligando:\nLFC min vs\notros niches"
 lfc_plot
-
-# Hacer el circos con el df combinado
-filtered_ligands = combined_WOI_df %>% filter(receiver == receiver_oi) %>% top_n(15, prioritization_score) %>% pull(ligand) %>% unique()
-
-colors_sender = c("lavender")  %>% magrittr::set_names(combined_WOI_df$sender %>% unique() %>% sort())
-colors_receiver = brewer.pal(n = combined_WOI_df$receiver %>% unique() %>% sort() %>% length(), name = 'Spectral') %>% magrittr::set_names(combined_WOI_df$receiver %>% unique() %>% sort())
-
-circos_output = make_circos_lr(combined_WOI_df, colors_sender, colors_receiver)
