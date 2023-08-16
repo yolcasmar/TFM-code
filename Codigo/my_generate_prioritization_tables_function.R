@@ -1,3 +1,5 @@
+
+# Modificación de la función scaling_zscore empleada por la función generate_prioritization_tables
 my_scaling_zscore <- function(x) {
   if (typeof(x) == "double") {
     if (length(x) == 1) {
@@ -14,6 +16,7 @@ my_scaling_zscore <- function(x) {
   }
 }
 
+# Modificación de la función generate_prioritization_tables, sustituyendo la función scaling_zscore por my_scaling_zscore
 my_generate_prioritization_tables <- function (sender_receiver_info, sender_receiver_de, ligand_activities_targets_DEgenes, 
                                                contrast_tbl, sender_receiver_tbl, grouping_tbl, prioritizing_weights = c(de_ligand = 1, 
                                                                                                                          de_receptor = 1, activity_scaled = 2, exprs_ligand = 2, 
