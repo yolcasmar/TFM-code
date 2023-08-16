@@ -1,5 +1,5 @@
 
-# Paquetes necesarios
+## Paquetes necesarios
 library(OmnipathR)
 library(nichenetr)
 library(mlrMBO)
@@ -12,7 +12,7 @@ require(OmnipathR)
 nichenet_workarounds()
 nichenet_test()
 
-# NicheNet requiere tres tipos de interacciones. La función nichenet_networks se encarga de la construcción de las tres redes de interacción
+# NicheNet requiere tres tipos de redes de interacción. La función nichenet_networks se encarga de la construcción de las tres
 # La opción only_omnipath = FALSE hace que no coja solo los datos de Omnipath
 # Se obtiene una lista con 3 dataframes que se guarda de forma automática como RDS en una carpeta llamada nichenet_results
 networks <- nichenet_networks(only_omnipath = FALSE)
@@ -39,11 +39,9 @@ nichenet_model <- nichenet_build_model(
   networks = networks
   )
 
-
 # Generar la matriz ligando-target
 lt_matrix <- nichenet_ligand_target_matrix(
   nichenet_model$weighted_networks,
   networks$lr_network,
   nichenet_model$optimized_parameters
   )
-
