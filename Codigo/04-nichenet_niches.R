@@ -1,5 +1,5 @@
 
-# Paquetes necesarios
+## Paquetes necesarios
 library(nichenetr)
 library(RColorBrewer)
 library(tidyverse)
@@ -7,7 +7,7 @@ library(Seurat)
 library(SeuratDisk)
 
 ## Análisis diferencial con NicheNet entre condiciones de interés
-## Cargar los datos de expresión
+# Cargar los datos de expresión
 seuratObj <- LoadH5Seurat("../Data/Single-cell/07_sc_AS_Estonia_Wang_Group_SCT_Main_lineages_clean.H5Seurat")
 seuratObj <- DietSeurat(object = seuratObj, assays = c("RNA", "SCT"), dimreducs = "umap")
 seuratObj$Group_final <- gsub(pattern = "WOI WOI Control", replacement = "WOI", x = seuratObj$Group_final)
@@ -26,7 +26,8 @@ lr_network <- network$lr_network
 lr_network <- lr_network %>% mutate(bonafide = ! database %in% c("ppi_prediction","ppi_prediction_go"))
 lr_network <- lr_network %>% dplyr::rename(ligand = from, receptor = to) %>% distinct(ligand, receptor, bonafide)
 
-## 1. Definir los grupos de interés
+## Pasos del análisis con NicheNet
+# 1. Definir los grupos de interés
 niches <- list(
   "AS_niche" = list(
     "sender" = c("Epi-Lumenal_AS", "Epi-Ciliated_AS", "Epi-Glandular_AS", "Epi-Glandular secretory_AS"),
@@ -36,8 +37,7 @@ niches <- list(
     "receiver" = c("Stroma_WOI"))
   ) 
 
-
-## 2. Calcular la expresión diferencial entre los grupos
+# 2. Calcular la expresión diferencial entre los grupos
 assay_oi <- "SCT" 
 seuratObj <- PrepSCTFindMarkers(seuratObj, assay = "SCT", verbose = FALSE) # Necesario antes de la función calculate_niche_de
 
@@ -57,7 +57,7 @@ DE_receiver_processed <- process_niche_de(DE_table = DE_receiver, niches = niche
 specificity_score_LR_pairs <- "min_lfc"
 DE_sender_receiver <- combine_sender_receiver_de(DE_sender_processed, DE_receiver_processed, lr_network, specificity_score = specificity_score_LR_pairs)
 
-## 3. Calcular la expresión diferencial entre las diferentes regiones espaciales
+# 3. Calcular la expresión diferencial entre las diferentes regiones espaciales
 include_spatial_info_sender <- FALSE 
 include_spatial_info_receiver <- FALSE 
 
@@ -94,7 +94,7 @@ if(include_spatial_info_receiver == TRUE){
   receiver_spatial_DE_processed <- receiver_spatial_DE_processed %>% mutate(scaled_receptor_score_spatial = scale_quantile_adapted(receptor_score_spatial))
   }
 
-## 4. Calcular las actividades de los ligandos e inferir las relaciones ligando-target activas
+# 4. Calcular las actividades de los ligandos e inferir las relaciones ligando-target activas
 lfc_cutoff <- 0.15 # recomendado para 10x como min_lfc cutoff 
 specificity_score_targets <- "min_lfc"
 
@@ -126,7 +126,7 @@ niche_geneset_list <- list(
 
 ligand_activities_targets <- get_ligand_activities_targets(niche_geneset_list = niche_geneset_list, ligand_target_matrix = ligand_target_matrix, top_n_target = top_n_target)
 
-## 5. Calcular la expresión escalada de los ligandos, receptores y targets en los tipos celulares de interés
+# 5. Calcular la expresión escalada de los ligandos, receptores y targets en los tipos celulares de interés
 features_oi <- union(lr_network$ligand, lr_network$receptor) %>% union(ligand_activities_targets$target) %>% setdiff(NA)
 
 dotplot <- suppressWarnings(Seurat::DotPlot(seuratObj %>% subset(idents = niches %>% unlist() %>% unique()), features = features_oi, assay = assay_oi))
@@ -142,7 +142,7 @@ exprs_tbl_ligand <- exprs_tbl_ligand %>%  mutate(scaled_ligand_expression_scaled
 
 exprs_tbl_receptor <- exprs_tbl_receptor %>% mutate(scaled_receptor_expression_scaled = scale_quantile_adapted(receptor_expression_scaled))  %>% mutate(receptor_fraction_adapted = receptor_fraction) %>% mutate_cond(receptor_fraction >= expression_pct, receptor_fraction_adapted = expression_pct)  %>% mutate(scaled_receptor_fraction_adapted = scale_quantile_adapted(receptor_fraction_adapted))
 
-## 6. Fracción de expresión y receptor
+# 6. Fracción de expresión y receptor
 exprs_sender_receiver <- lr_network %>% 
   inner_join(exprs_tbl_ligand, by = c("ligand")) %>% 
   inner_join(exprs_tbl_receptor, by = c("receptor")) %>% inner_join(DE_sender_receiver %>% distinct(niche, sender, receiver))
@@ -150,7 +150,7 @@ exprs_sender_receiver <- lr_network %>%
 ligand_scaled_receptor_expression_fraction_df <- exprs_sender_receiver %>% group_by(ligand, receiver) %>% mutate(rank_receptor_expression = dense_rank(receptor_expression), rank_receptor_fraction  = dense_rank(receptor_fraction)) %>% mutate(ligand_scaled_receptor_expression_fraction = 0.5*( (rank_receptor_fraction / max(rank_receptor_fraction)) + ((rank_receptor_expression / max(rank_receptor_expression))) ) )  %>% distinct(ligand, receptor, receiver, ligand_scaled_receptor_expression_fraction, bonafide) %>% distinct() %>% ungroup() 
 
 
-## 7. Priorización de interacciones ligando-receptor y ligando-target
+# 7. Priorización de interacciones ligando-receptor y ligando-target
 prioritizing_weights <- c("scaled_ligand_score" = 5,
                          "scaled_ligand_expression_scaled" = 1,
                          "ligand_fraction" = 1,
@@ -169,7 +169,7 @@ output <- list(DE_sender_receiver = DE_sender_receiver, ligand_scaled_receptor_e
 
 prioritization_tables <- get_prioritization_tables(output, prioritizing_weights)
 
-## 8. Visualización del output de NicheNet
+# 8. Visualización del output de NicheNet
 
 # Expresión diferencial de los ligandos
 top_ligand_niche_df <- prioritization_tables$prioritization_tbl_ligand_receptor %>% select(niche, sender, receiver, ligand, receptor, prioritization_score) %>% group_by(ligand) %>% top_n(1, prioritization_score) %>% ungroup() %>% select(ligand, receptor, niche) %>% rename(top_niche = niche)
@@ -207,11 +207,11 @@ lfc_plot2[[1]]$labels$fill <- "Ligando:\nLFC min vs\notros niches"
 lfc_plot2
 
 ## Pasos para los grupos anteriores invertidos, los tipos celulares sender como receptores y viceversa
-# Se siguen los pasos anteriores hasta obtener las tablas con las interacciones prioritarias para cada interacción estroma epitelio
+# Se siguen los pasos anteriores hasta obtener las tablas con las interacciones prioritarias para cada interacción del estroma a los epitelios
 # Los epitelios se calculan uno a uno porque no puede usarse más de un tipo celular receptor para calcular la expresión diferencial
 
 ## Stroma --> Epi_Lumenal
-## 1. Definir los grupos de interés
+# 1. Definir los grupos de interés
 niches <- list(
   "AS_niche" = list(
     "sender" = c("Stroma_AS"),
@@ -221,7 +221,7 @@ niches <- list(
     "receiver" = c("Epi-Lumenal_WOI"))
    )
 
-## 2. Calcular la expresión diferencial entre los grupos
+# 2. Calcular la expresión diferencial entre los grupos
 assay_oi <- "SCT" 
 
 DE_sender <- calculate_niche_de(seurat_obj = seuratObj %>% subset(features = lr_network$ligand %>% unique()), niches = niches, type = "sender", assay_oi = assay_oi) # Solo los ligandos importantes para los tipos celulares sender
@@ -240,7 +240,7 @@ DE_receiver_processed <- process_niche_de(DE_table = DE_receiver, niches = niche
 specificity_score_LR_pairs <- "min_lfc"
 DE_sender_receiver <- combine_sender_receiver_de(DE_sender_processed, DE_receiver_processed, lr_network, specificity_score = specificity_score_LR_pairs)
 
-## 3. Calcular la expresión diferencial entre las diferentes regiones espaciales
+# 3. Calcular la expresión diferencial entre las diferentes regiones espaciales
 include_spatial_info_sender <- FALSE 
 include_spatial_info_receiver <- FALSE 
 
@@ -275,7 +275,7 @@ if(include_spatial_info_receiver == TRUE){
   receiver_spatial_DE_processed <- receiver_spatial_DE_processed %>% mutate(scaled_receptor_score_spatial = scale_quantile_adapted(receptor_score_spatial))
   }
 
-## 4. Calcular las actividades de los ligandos e inferir las relaciones ligando-target activas
+# 4. Calcular las actividades de los ligandos e inferir las relaciones ligando-target activas
 lfc_cutoff <- 0.15 # recomendado para 10x como min_lfc cutoff 
 specificity_score_targets <- "min_lfc"
 
@@ -307,7 +307,7 @@ niche_geneset_list <- list(
 
 ligand_activities_targets <- get_ligand_activities_targets(niche_geneset_list = niche_geneset_list, ligand_target_matrix = ligand_target_matrix, top_n_target = top_n_target)
 
-## 5. Calcular la expresión escalada de los ligandos, receptores y targets en los tipos celulares de interés
+# 5. Calcular la expresión escalada de los ligandos, receptores y targets en los tipos celulares de interés
 features_oi <- union(lr_network$ligand, lr_network$receptor) %>% union(ligand_activities_targets$target) %>% setdiff(NA)
 
 dotplot <- suppressWarnings(Seurat::DotPlot(seuratObj %>% subset(idents = niches %>% unlist() %>% unique()), features = features_oi, assay = assay_oi))
@@ -323,14 +323,14 @@ exprs_tbl_ligand <- exprs_tbl_ligand %>%  mutate(scaled_ligand_expression_scaled
 
 exprs_tbl_receptor <- exprs_tbl_receptor %>% mutate(scaled_receptor_expression_scaled = scale_quantile_adapted(receptor_expression_scaled))  %>% mutate(receptor_fraction_adapted = receptor_fraction) %>% mutate_cond(receptor_fraction >= expression_pct, receptor_fraction_adapted = expression_pct)  %>% mutate(scaled_receptor_fraction_adapted = scale_quantile_adapted(receptor_fraction_adapted))
 
-## 6. Fracción de expresión y receptor
+# 6. Fracción de expresión y receptor
 exprs_sender_receiver <- lr_network %>% 
   inner_join(exprs_tbl_ligand, by = c("ligand")) %>% 
   inner_join(exprs_tbl_receptor, by = c("receptor")) %>% inner_join(DE_sender_receiver %>% distinct(niche, sender, receiver))
 
 ligand_scaled_receptor_expression_fraction_df <- exprs_sender_receiver %>% group_by(ligand, receiver) %>% mutate(rank_receptor_expression = dense_rank(receptor_expression), rank_receptor_fraction  = dense_rank(receptor_fraction)) %>% mutate(ligand_scaled_receptor_expression_fraction = 0.5*( (rank_receptor_fraction / max(rank_receptor_fraction)) + ((rank_receptor_expression / max(rank_receptor_expression))) ) )  %>% distinct(ligand, receptor, receiver, ligand_scaled_receptor_expression_fraction, bonafide) %>% distinct() %>% ungroup() 
 
-## 7. Priorización de interacciones ligando-receptor y ligando-target
+# 7. Priorización de interacciones ligando-receptor y ligando-target
 prioritizing_weights <- c("scaled_ligand_score" = 5,
                          "scaled_ligand_expression_scaled" = 1,
                          "ligand_fraction" = 1,
@@ -350,7 +350,7 @@ output <- list(DE_sender_receiver = DE_sender_receiver, ligand_scaled_receptor_e
 prioritization_tables <- get_prioritization_tables(output, prioritizing_weights)
 saveRDS(prioritization_tables, file = "../Results/priorization_tables/stroma_epilumenal.rds")
 
-## 8. Visualización del output de NicheNet
+# 8. Visualización del output de NicheNet
 # Expresión diferencial de los ligandos
 top_ligand_niche_df <- prioritization_tables$prioritization_tbl_ligand_receptor %>% select(niche, sender, receiver, ligand, receptor, prioritization_score) %>% group_by(ligand) %>% top_n(1, prioritization_score) %>% ungroup() %>% select(ligand, receptor, niche) %>% rename(top_niche = niche)
 top_ligand_receptor_niche_df <- prioritization_tables$prioritization_tbl_ligand_receptor %>% select(niche, sender, receiver, ligand, receptor, prioritization_score) %>% group_by(ligand, receptor) %>% top_n(1, prioritization_score) %>% ungroup() %>% select(ligand, receptor, niche) %>% rename(top_niche = niche)
@@ -375,7 +375,7 @@ prioritized_tbl_oi <- prioritization_tables$prioritization_tbl_ligand_receptor %
 saveRDS(prioritized_tbl_oi, file = "../Results/df_stroma_epi/stroma_epilumenal_WOI.rds")
 
 ## Stroma --> Epi_Ciliated
-## 1. Definir los grupos de interés
+# 1. Definir los grupos de interés
 niches <- list(
   "AS_niche" = list(
     "sender" = c("Stroma_AS"),
@@ -385,7 +385,7 @@ niches <- list(
     "receiver" = c("Epi-Ciliated_WOI"))
    )
 
-## 2. Calcular la expresión diferencial entre los grupos
+# 2. Calcular la expresión diferencial entre los grupos
 assay_oi <- "SCT" 
 
 DE_sender <- calculate_niche_de(seurat_obj = seuratObj %>% subset(features = lr_network$ligand %>% unique()), niches = niches, type = "sender", assay_oi = assay_oi) # Solo los ligandos importantes para los tipos celulares sender
@@ -404,7 +404,7 @@ DE_receiver_processed <- process_niche_de(DE_table = DE_receiver, niches = niche
 specificity_score_LR_pairs <- "min_lfc"
 DE_sender_receiver <- combine_sender_receiver_de(DE_sender_processed, DE_receiver_processed, lr_network, specificity_score = specificity_score_LR_pairs)
 
-## 3. Calcular la expresión diferencial entre las diferentes regiones espaciales
+# 3. Calcular la expresión diferencial entre las diferentes regiones espaciales
 include_spatial_info_sender <- FALSE 
 include_spatial_info_receiver <- FALSE 
 
@@ -439,7 +439,7 @@ if(include_spatial_info_receiver == TRUE){
   receiver_spatial_DE_processed <- receiver_spatial_DE_processed %>% mutate(scaled_receptor_score_spatial = scale_quantile_adapted(receptor_score_spatial))
   }
 
-## 4. Calcular las actividades de los ligandos e inferir las relaciones ligando-target activas
+# 4. Calcular las actividades de los ligandos e inferir las relaciones ligando-target activas
 lfc_cutoff <- 0.15 # recomendado para 10x como min_lfc cutoff 
 specificity_score_targets <- "min_lfc"
 
@@ -471,7 +471,7 @@ niche_geneset_list <- list(
 
 ligand_activities_targets <- get_ligand_activities_targets(niche_geneset_list = niche_geneset_list, ligand_target_matrix = ligand_target_matrix, top_n_target = top_n_target)
 
-## 5. Calcular la expresión escalada de los ligandos, receptores y targets en los tipos celulares de interés
+# 5. Calcular la expresión escalada de los ligandos, receptores y targets en los tipos celulares de interés
 features_oi <- union(lr_network$ligand, lr_network$receptor) %>% union(ligand_activities_targets$target) %>% setdiff(NA)
 
 dotplot <- suppressWarnings(Seurat::DotPlot(seuratObj %>% subset(idents = niches %>% unlist() %>% unique()), features = features_oi, assay = assay_oi))
@@ -487,7 +487,7 @@ exprs_tbl_ligand <- exprs_tbl_ligand %>%  mutate(scaled_ligand_expression_scaled
 
 exprs_tbl_receptor <- exprs_tbl_receptor %>% mutate(scaled_receptor_expression_scaled = scale_quantile_adapted(receptor_expression_scaled))  %>% mutate(receptor_fraction_adapted = receptor_fraction) %>% mutate_cond(receptor_fraction >= expression_pct, receptor_fraction_adapted = expression_pct)  %>% mutate(scaled_receptor_fraction_adapted = scale_quantile_adapted(receptor_fraction_adapted))
 
-## 6. Fracción de expresión y receptor
+# 6. Fracción de expresión y receptor
 exprs_sender_receiver <- lr_network %>% 
   inner_join(exprs_tbl_ligand, by = c("ligand")) %>% 
   inner_join(exprs_tbl_receptor, by = c("receptor")) %>% inner_join(DE_sender_receiver %>% distinct(niche, sender, receiver))
@@ -495,7 +495,7 @@ exprs_sender_receiver <- lr_network %>%
 ligand_scaled_receptor_expression_fraction_df <- exprs_sender_receiver %>% group_by(ligand, receiver) %>% mutate(rank_receptor_expression = dense_rank(receptor_expression), rank_receptor_fraction  = dense_rank(receptor_fraction)) %>% mutate(ligand_scaled_receptor_expression_fraction = 0.5*( (rank_receptor_fraction / max(rank_receptor_fraction)) + ((rank_receptor_expression / max(rank_receptor_expression))) ) )  %>% distinct(ligand, receptor, receiver, ligand_scaled_receptor_expression_fraction, bonafide) %>% distinct() %>% ungroup() 
 
 
-## 7. Priorización de interacciones ligando-receptor y ligando-target
+# 7. Priorización de interacciones ligando-receptor y ligando-target
 prioritizing_weights <- c("scaled_ligand_score" = 5,
                          "scaled_ligand_expression_scaled" = 1,
                          "ligand_fraction" = 1,
@@ -515,7 +515,7 @@ output <- list(DE_sender_receiver = DE_sender_receiver, ligand_scaled_receptor_e
 prioritization_tables <- get_prioritization_tables(output, prioritizing_weights)
 saveRDS(prioritization_tables, file = "../Results/priorization_tables/stroma_epiciliated.rds")
 
-## 8. Visualización del output de NicheNet
+# 8. Visualización del output de NicheNet
 # Expresión diferencial de los ligandos
 top_ligand_niche_df <- prioritization_tables$prioritization_tbl_ligand_receptor %>% select(niche, sender, receiver, ligand, receptor, prioritization_score) %>% group_by(ligand) %>% top_n(1, prioritization_score) %>% ungroup() %>% select(ligand, receptor, niche) %>% rename(top_niche = niche)
 top_ligand_receptor_niche_df <- prioritization_tables$prioritization_tbl_ligand_receptor %>% select(niche, sender, receiver, ligand, receptor, prioritization_score) %>% group_by(ligand, receptor) %>% top_n(1, prioritization_score) %>% ungroup() %>% select(ligand, receptor, niche) %>% rename(top_niche = niche)
@@ -540,7 +540,7 @@ prioritized_tbl_oi <- prioritization_tables$prioritization_tbl_ligand_receptor %
 saveRDS(prioritized_tbl_oi, file = "../Results/df_stroma_epi/stroma_epiciliated_WOI.rds")
 
 ## Stroma --> Epi_Glandular
-## 1. Definir los grupos de interés
+# 1. Definir los grupos de interés
 niches <- list(
   "AS_niche" = list(
     "sender" = c("Stroma_AS"),
@@ -550,7 +550,7 @@ niches <- list(
     "receiver" = c("Epi-Glandular_WOI"))
    ) 
 
-## 2. Calcular la expresión diferencial entre los grupos
+# 2. Calcular la expresión diferencial entre los grupos
 assay_oi <- "SCT" 
 
 DE_sender <- calculate_niche_de(seurat_obj = seuratObj %>% subset(features = lr_network$ligand %>% unique()), niches = niches, type = "sender", assay_oi = assay_oi) # Solo los ligandos importantes para los tipos celulares sender
@@ -569,7 +569,7 @@ DE_receiver_processed <- process_niche_de(DE_table = DE_receiver, niches = niche
 specificity_score_LR_pairs <- "min_lfc"
 DE_sender_receiver <- combine_sender_receiver_de(DE_sender_processed, DE_receiver_processed, lr_network, specificity_score = specificity_score_LR_pairs)
 
-## 3. Calcular la expresión diferencial entre las diferentes regiones espaciales
+# 3. Calcular la expresión diferencial entre las diferentes regiones espaciales
 include_spatial_info_sender <- FALSE 
 include_spatial_info_receiver <- FALSE 
 
@@ -604,7 +604,7 @@ if(include_spatial_info_receiver == TRUE){
   receiver_spatial_DE_processed <- receiver_spatial_DE_processed %>% mutate(scaled_receptor_score_spatial = scale_quantile_adapted(receptor_score_spatial))
   }
 
-## 4. Calcular las actividades de los ligandos e inferir las relaciones ligando-target activas
+# 4. Calcular las actividades de los ligandos e inferir las relaciones ligando-target activas
 lfc_cutoff <- 0.15 # recomendado para 10x como min_lfc cutoff 
 specificity_score_targets <- "min_lfc"
 
@@ -636,7 +636,7 @@ niche_geneset_list <- list(
 
 ligand_activities_targets <- get_ligand_activities_targets(niche_geneset_list = niche_geneset_list, ligand_target_matrix = ligand_target_matrix, top_n_target = top_n_target)
 
-## 5. Calcular la expresión escalada de los ligandos, receptores y targets en los tipos celulares de interés
+# 5. Calcular la expresión escalada de los ligandos, receptores y targets en los tipos celulares de interés
 features_oi <- union(lr_network$ligand, lr_network$receptor) %>% union(ligand_activities_targets$target) %>% setdiff(NA)
 
 dotplot <- suppressWarnings(Seurat::DotPlot(seuratObj %>% subset(idents = niches %>% unlist() %>% unique()), features = features_oi, assay = assay_oi))
@@ -652,14 +652,14 @@ exprs_tbl_ligand <- exprs_tbl_ligand %>%  mutate(scaled_ligand_expression_scaled
 
 exprs_tbl_receptor <- exprs_tbl_receptor %>% mutate(scaled_receptor_expression_scaled = scale_quantile_adapted(receptor_expression_scaled))  %>% mutate(receptor_fraction_adapted = receptor_fraction) %>% mutate_cond(receptor_fraction >= expression_pct, receptor_fraction_adapted = expression_pct)  %>% mutate(scaled_receptor_fraction_adapted = scale_quantile_adapted(receptor_fraction_adapted))
 
-## 6. Fracción de expresión y receptor
+# 6. Fracción de expresión y receptor
 exprs_sender_receiver <- lr_network %>% 
   inner_join(exprs_tbl_ligand, by = c("ligand")) %>% 
   inner_join(exprs_tbl_receptor, by = c("receptor")) %>% inner_join(DE_sender_receiver %>% distinct(niche, sender, receiver))
 
 ligand_scaled_receptor_expression_fraction_df <- exprs_sender_receiver %>% group_by(ligand, receiver) %>% mutate(rank_receptor_expression = dense_rank(receptor_expression), rank_receptor_fraction  = dense_rank(receptor_fraction)) %>% mutate(ligand_scaled_receptor_expression_fraction = 0.5*( (rank_receptor_fraction / max(rank_receptor_fraction)) + ((rank_receptor_expression / max(rank_receptor_expression))) ) )  %>% distinct(ligand, receptor, receiver, ligand_scaled_receptor_expression_fraction, bonafide) %>% distinct() %>% ungroup() 
 
-## 7. Priorización de interacciones ligando-receptor y ligando-target
+# 7. Priorización de interacciones ligando-receptor y ligando-target
 prioritizing_weights <- c("scaled_ligand_score" = 5,
                          "scaled_ligand_expression_scaled" = 1,
                          "ligand_fraction" = 1,
@@ -679,7 +679,7 @@ output <- list(DE_sender_receiver = DE_sender_receiver, ligand_scaled_receptor_e
 prioritization_tables <- get_prioritization_tables(output, prioritizing_weights)
 saveRDS(prioritization_tables, file = "../Results/priorization_tables/stroma_epiglandular.rds")
 
-## 8. Visualización del output de NicheNet
+# 8. Visualización del output de NicheNet
 # Expresión diferencial de los ligandos
 top_ligand_niche_df <- prioritization_tables$prioritization_tbl_ligand_receptor %>% select(niche, sender, receiver, ligand, receptor, prioritization_score) %>% group_by(ligand) %>% top_n(1, prioritization_score) %>% ungroup() %>% select(ligand, receptor, niche) %>% rename(top_niche = niche)
 top_ligand_receptor_niche_df <- prioritization_tables$prioritization_tbl_ligand_receptor %>% select(niche, sender, receiver, ligand, receptor, prioritization_score) %>% group_by(ligand, receptor) %>% top_n(1, prioritization_score) %>% ungroup() %>% select(ligand, receptor, niche) %>% rename(top_niche = niche)
@@ -704,7 +704,7 @@ prioritized_tbl_oi <- prioritization_tables$prioritization_tbl_ligand_receptor %
 saveRDS(prioritized_tbl_oi, file = "../Results/df_stroma_epi/stroma_epiglandular_WOI.rds")
 
 ## Stroma --> Epi_Glandular secretory
-## 1. Definir los grupos de interés
+# 1. Definir los grupos de interés
 niches <- list(
   "AS_niche" = list(
     "sender" = c("Stroma_AS"),
@@ -714,7 +714,7 @@ niches <- list(
     "receiver" = c("Epi-Glandular secretory_WOI"))
   )
 
-## 2. Calcular la expresión diferencial entre los grupos
+# 2. Calcular la expresión diferencial entre los grupos
 assay_oi <- "SCT" 
 
 DE_sender <- calculate_niche_de(seurat_obj = seuratObj %>% subset(features = lr_network$ligand %>% unique()), niches = niches, type = "sender", assay_oi = assay_oi) # Solo los ligandos importantes para los tipos celulares sender
@@ -733,7 +733,7 @@ DE_receiver_processed <- process_niche_de(DE_table = DE_receiver, niches = niche
 specificity_score_LR_pairs <- "min_lfc"
 DE_sender_receiver <- combine_sender_receiver_de(DE_sender_processed, DE_receiver_processed, lr_network, specificity_score = specificity_score_LR_pairs)
 
-## 3. Calcular la expresión diferencial entre las diferentes regiones espaciales
+# 3. Calcular la expresión diferencial entre las diferentes regiones espaciales
 include_spatial_info_sender <- FALSE 
 include_spatial_info_receiver <- FALSE 
 
@@ -768,7 +768,7 @@ if(include_spatial_info_receiver == TRUE){
   receiver_spatial_DE_processed <- receiver_spatial_DE_processed %>% mutate(scaled_receptor_score_spatial = scale_quantile_adapted(receptor_score_spatial))
   }
 
-## 4. Calcular las actividades de los ligandos e inferir las relaciones ligando-target activas
+# 4. Calcular las actividades de los ligandos e inferir las relaciones ligando-target activas
 lfc_cutoff <- 0.15 # recomendado para 10x como min_lfc cutoff 
 specificity_score_targets <- "min_lfc"
 
@@ -800,7 +800,7 @@ niche_geneset_list <- list(
 
 ligand_activities_targets <- get_ligand_activities_targets(niche_geneset_list = niche_geneset_list, ligand_target_matrix = ligand_target_matrix, top_n_target = top_n_target)
 
-## 5. Calcular la expresión escalada de los ligandos, receptores y targets en los tipos celulares de interés
+# 5. Calcular la expresión escalada de los ligandos, receptores y targets en los tipos celulares de interés
 features_oi <- union(lr_network$ligand, lr_network$receptor) %>% union(ligand_activities_targets$target) %>% setdiff(NA)
 
 dotplot <- suppressWarnings(Seurat::DotPlot(seuratObj %>% subset(idents = niches %>% unlist() %>% unique()), features = features_oi, assay = assay_oi))
@@ -816,14 +816,14 @@ exprs_tbl_ligand <- exprs_tbl_ligand %>%  mutate(scaled_ligand_expression_scaled
 
 exprs_tbl_receptor <- exprs_tbl_receptor %>% mutate(scaled_receptor_expression_scaled = scale_quantile_adapted(receptor_expression_scaled))  %>% mutate(receptor_fraction_adapted = receptor_fraction) %>% mutate_cond(receptor_fraction >= expression_pct, receptor_fraction_adapted = expression_pct)  %>% mutate(scaled_receptor_fraction_adapted = scale_quantile_adapted(receptor_fraction_adapted))
 
-## 6. Fracción de expresión y receptor
+# 6. Fracción de expresión y receptor
 exprs_sender_receiver <- lr_network %>% 
   inner_join(exprs_tbl_ligand, by = c("ligand")) %>% 
   inner_join(exprs_tbl_receptor, by = c("receptor")) %>% inner_join(DE_sender_receiver %>% distinct(niche, sender, receiver))
 
 ligand_scaled_receptor_expression_fraction_df <- exprs_sender_receiver %>% group_by(ligand, receiver) %>% mutate(rank_receptor_expression = dense_rank(receptor_expression), rank_receptor_fraction  = dense_rank(receptor_fraction)) %>% mutate(ligand_scaled_receptor_expression_fraction = 0.5*( (rank_receptor_fraction / max(rank_receptor_fraction)) + ((rank_receptor_expression / max(rank_receptor_expression))) ) )  %>% distinct(ligand, receptor, receiver, ligand_scaled_receptor_expression_fraction, bonafide) %>% distinct() %>% ungroup() 
 
-## 7. Priorización de interacciones ligando-receptor y ligando-target
+# 7. Priorización de interacciones ligando-receptor y ligando-target
 prioritizing_weights <- c("scaled_ligand_score" = 5,
                          "scaled_ligand_expression_scaled" = 1,
                          "ligand_fraction" = 1,
@@ -843,7 +843,7 @@ output <- list(DE_sender_receiver = DE_sender_receiver, ligand_scaled_receptor_e
 prioritization_tables <- get_prioritization_tables(output, prioritizing_weights)
 saveRDS(prioritization_tables, file = "../Results/priorization_tables/stroma_epiglandular-secretory.rds")
 
-## 8. Visualización del output de NicheNet
+# 8. Visualización del output de NicheNet
 # Expresión diferencial de los ligandos
 top_ligand_niche_df <- prioritization_tables$prioritization_tbl_ligand_receptor %>% select(niche, sender, receiver, ligand, receptor, prioritization_score) %>% group_by(ligand) %>% top_n(1, prioritization_score) %>% ungroup() %>% select(ligand, receptor, niche) %>% rename(top_niche = niche)
 top_ligand_receptor_niche_df <- prioritization_tables$prioritization_tbl_ligand_receptor %>% select(niche, sender, receiver, ligand, receptor, prioritization_score) %>% group_by(ligand, receptor) %>% top_n(1, prioritization_score) %>% ungroup() %>% select(ligand, receptor, niche) %>% rename(top_niche = niche)
@@ -867,7 +867,8 @@ prioritized_tbl_oi <- prioritization_tables$prioritization_tbl_ligand_receptor %
 
 saveRDS(prioritized_tbl_oi, file = "../Results/df_stroma_epi/stroma_epiglandular-secretory_WOI.rds")
 
-## Cargar los dataframes del grupo AS
+## Visualizar los gráficos de las interacciones del estroma a todos los epitelios a la vez
+# Cargar los dataframes del grupo AS
 lumenal_AS <- readRDS("../Results/df_stroma_epi/stroma_epilumenal_AS.rds")
 ciliated_AS <- readRDS("../Results/df_stroma_epi/stroma_epiciliated_AS.rds")
 glandular_AS <- readRDS("../Results/df_stroma_epi/stroma_epiglandular_AS.rds")
@@ -901,7 +902,7 @@ lfc_plot[[1]]$labels$x <- "LFC del ligando\n en Emisores"
 lfc_plot[[1]]$labels$fill <- "Ligando:\nLFC min vs\notros niches"
 lfc_plot
 
-## Cargar los dataframes del grupo WOI
+# Cargar los dataframes del grupo WOI
 lumenal_WOI <- readRDS("../Results/df_stroma_epi/stroma_epilumenal_WOI.rds")
 ciliated_WOI <- readRDS("../Results/df_stroma_epi/stroma_epiciliated_WOI.rds")
 glandular_WOI <- readRDS("../Results/df_stroma_epi/stroma_epiglandular_WOI.rds")
