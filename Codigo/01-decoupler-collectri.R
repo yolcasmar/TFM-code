@@ -1,13 +1,13 @@
 
-# Cargar paquetes
-## Se cargan los paquetes requeridos
+## Cargar paquetes
+# Se cargan los paquetes requeridos
 library(Seurat)
 library(SeuratDisk)
 library(DESeq2)
 library(decoupleR)
 library(OmnipathR)
 
-# Solo necesarios para el tratamiento de datos y las gráficas
+# Paquetes necesarios para el tratamiento de datos y las gráficas
 library(dplyr)
 library(tibble)
 library(tidyr)
@@ -34,7 +34,7 @@ ggsave(filename = "cell_type_umap", path = "../Results/Images/decoupleR_CollecTR
 net <- decoupleR::get_collectri(organism='human', split_complexes=FALSE)
 saveRDS(net, file = "../Data/decoupleR_CollecTRI_data/net.rds")
 
-# Inferencia de actividad con ULM
+## Inferencia de actividad con ULM
 # Extraer los conteos normalizados transformados por logaritmo
 mat <- seuratObj@assays$RNA@data
 saveRDS(mat, file = "../Data/decoupleR_CollecTRI_data/mat.rds")
@@ -44,7 +44,7 @@ acts <- run_ulm(mat=mat, net=net, .source='source', .target='target',
                 .mor='mor', minsize = 5)
 saveRDS(acts, file = "../Data/decoupleR_CollecTRI_data/acts.rds")
 
-# Visualización
+## Visualización
 # Extraer los ulm y almacenarlos en el ensayo tfsulm del objeto Seurat
 seuratObj[['tfsulm']] <- acts %>%
   pivot_wider(id_cols = 'source', names_from = 'condition',
@@ -89,8 +89,8 @@ ggsave(filename = "DimPlotESR1", path = "../Results/Images/decoupleR_CollecTRI_i
 ggsave(filename = "ActivityESR1", path = "../Results/Images/decoupleR_CollecTRI_images/", plot = p5, device = png)
 ggsave(filename = "ExpressionESR1", path = "../Results/Images/decoupleR_CollecTRI_images/", plot = p6, device = png)
 
-## Violin plots
-# Calcular los Violin plots de la actividad de los TFs de interés
+## Gráficos Violin
+# Calcular los gráficos Violin de la actividad de los TFs de interés
 seuratObj <- SetIdent(seuratObj, value = "cell_type_zooming_v5")
 
 comparisons = list(c("AS", "WOI"))
@@ -181,7 +181,7 @@ Vln_GlanSec_ESR1 <- VlnPlot(seuratObj, features = "ESR1",
 
 Vln_Stroma_ESR1 | Vln_Lum_ESR1 | Vln_Cil_ESR1 | Vln_Glan_ESR1 | Vln_GlanSec_ESR1
 
-# Calcular los Violin plots de la expresión de los TFs de interés
+# Calcular los gráficos Violin de la expresión de los TFs de interés
 DefaultAssay(object = seuratObj) <- "RNA"
 y_max = 4.5
 
@@ -385,7 +385,7 @@ counts.split.modified <- lapply(counts.split, function(x){
   t(x)
   })
 
-# Correr el análisis DE con las células del Estroma
+## Correr el análisis DE con las células del Estroma
 # 1.Obtener la matriz de conteos
 counts_stroma <- counts.split.modified$Stroma
 
@@ -492,7 +492,8 @@ df_filtered_stroma <- df_filtered_stroma %>% mutate(CellType = "Stroma")
 df_filtered_stroma_AS <- df_filtered_stroma %>% filter(log2FoldChange < 0) %>% mutate(Group = "AS") 
 df_filtered_stroma_WOI <- df_filtered_stroma %>% filter(log2FoldChange > 0) %>% mutate(Group = "WOI") 
 df_filtered_stroma <- rbind(df_filtered_stroma_AS, df_filtered_stroma_WOI)
-# Correr el análisis DE con las células del Epitelio Luminal
+
+## Correr el análisis DE con las células del Epitelio Luminal
 # 1.Obtener la matriz de conteos
 counts_lumenal <- counts.split.modified$`Epi-Lumenal`
 
@@ -595,7 +596,8 @@ df_filtered_lumenal <- df_filtered_lumenal %>% mutate(CellType = "Epi-Lumenal")
 df_filtered_lumenal_AS <- df_filtered_lumenal %>% filter(log2FoldChange < 0) %>% mutate(Group = "AS")
 df_filtered_lumenal_WOI <- df_filtered_lumenal %>% filter(log2FoldChange > 0) %>% mutate(Group = "WOI")
 df_filtered_lumenal <- rbind(df_filtered_lumenal_AS, df_filtered_lumenal_WOI)
-# Correr el análisis DE con las células del Epitelio Ciliado
+
+## Correr el análisis DE con las células del Epitelio Ciliado
 # 1.Obtener la matriz de conteos
 counts_ciliated <- counts.split.modified$`Epi-Ciliated`
 
@@ -698,7 +700,8 @@ df_filtered_ciliated <- df_filtered_ciliated %>% mutate(CellType = "Epi-Ciliated
 df_filtered_ciliated_AS <- df_filtered_ciliated %>% filter(log2FoldChange < 0) %>% mutate(Group = "AS")
 df_filtered_ciliated_WOI <- df_filtered_ciliated %>% filter(log2FoldChange > 0) %>% mutate(Group = "WOI")
 df_filtered_ciliated <- rbind(df_filtered_ciliated_AS, df_filtered_ciliated_WOI)
-# Correr el análisis DE con las células del Epitelio Glandular
+
+## Correr el análisis DE con las células del Epitelio Glandular
 # 1.Obtener la matriz de conteos
 counts_glandular <- counts.split.modified$`Epi-Glandular`
 
@@ -802,7 +805,7 @@ df_filtered_glandular_AS <- df_filtered_glandular %>% filter(log2FoldChange < 0)
 df_filtered_glandular_WOI <- df_filtered_glandular %>% filter(log2FoldChange > 0) %>% mutate(Group = "WOI")
 df_filtered_glandular <- rbind(df_filtered_glandular_AS, df_filtered_glandular_WOI)
 
-# Correr el análisis DE con las células del Epitelio Glandular secretor
+## Correr el análisis DE con las células del Epitelio Glandular secretor
 # 1.Obtener la matriz de conteos
 counts_glandular.secretory <- counts.split.modified$`Epi-Glandular secretory`
 
