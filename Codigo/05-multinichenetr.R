@@ -1,5 +1,5 @@
 
-# Paquetes necesarios
+## Paquetes necesarios
 library(SingleCellExperiment)
 library(Seurat)
 library(SeuratDisk)
@@ -77,7 +77,7 @@ sender_receiver_de <- multinichenetr::combine_sender_receiver_de(
   lr_network = lr_network
   )
 
-## Predecir las actividades de los ligandos de NicheNet y las uniones ligando-oobjetivo basándose en los resultados de la expresión diferencial
+## Predecir las actividades de los ligandos de NicheNet y las uniones ligando-diana basándose en los resultados de la expresión diferencial
 # Definir los parámetros para el análisis de la actividad de los ligandos de NicheNet
 logFC_threshold <- 0.50
 p_val_threshold <- 0.05
@@ -103,7 +103,7 @@ ligand_activities_targets_DEgenes <- suppressMessages(suppressWarnings(get_ligan
   n.cores = n.cores
   )))
 
-## Usar la información recogida anteriormente para priorizar todos los pares célula emisora- ligando---célula receptora-receptor
+## Usar la información recogida anteriormente para priorizar todos los pares célula emisora-ligando---célula receptora-receptor
 # Definir los pesos prioritarios y preparar objetos agrupados
 prioritizing_weights_DE <- c("de_ligand" = 1,
                              "de_receptor" = 1)
@@ -137,7 +137,7 @@ if(!is.na(batches)){
   colnames(grouping_tbl) = c("sample","group")
   }
 
-# Correr la priorización. La función original presentaba un error en el código, por lo que se ha utilizado una función modificada
+# Correr la priorización. La función original presentaba un error en el código, por lo que se ha utilizado una función modificada (my_generate_prioritization_tables)
 prioritization_tables <- suppressMessages(my_generate_prioritization_tables(
   sender_receiver_info = abundance_expression_info$sender_receiver_info,
   sender_receiver_de = sender_receiver_de,
@@ -151,14 +151,14 @@ prioritization_tables <- suppressMessages(my_generate_prioritization_tables(
   abundance_data_sender = abundance_expression_info$abundance_data_sender
   ))
 
-## Añadir información al conocimiento anterior y expresar la correlación entre ligando-receptor y la expresión del objetivo
+## Añadir información al conocimiento anterior y expresar la correlación entre ligando-receptor y la expresión de la diana
 lr_target_prior_cor <- lr_target_prior_cor_inference(prioritization_tables$group_prioritization_tbl$receiver %>% unique(), abundance_expression_info, celltype_de, 
                                                      grouping_tbl, prioritization_tables, ligand_target_matrix, logFC_threshold = logFC_threshold, p_val_threshold = p_val_threshold, p_val_adj = p_val_adj)
 
 # Guardar todo el output generado para poder usarlo en otra ocasión sin necesidad de volver a correr todos los pasos anteriores
-path = "../Results/multinichenetr/"
+path <- "../Results/multinichenetr/"
 
-multinichenet_output = list(
+multinichenet_output <- list(
   celltype_info = abundance_expression_info$celltype_info,
   celltype_de = celltype_de,
   sender_receiver_info = abundance_expression_info$sender_receiver_info,
@@ -169,7 +169,7 @@ multinichenet_output = list(
   lr_target_prior_cor = lr_target_prior_cor
   ) 
 
-multinichenet_output = make_lite_output(multinichenet_output)
+multinichenet_output <- make_lite_output(multinichenet_output)
 
 save = FALSE
 if(save == TRUE){
@@ -177,22 +177,22 @@ if(save == TRUE){
   }
 
 ## Visualización de los resultados del análisis de comunicación intercelular
-# Gráfico circos de las uniones prioritarias, las 50 predicciones principales entre los contrastes, emisores y receptores de interés
-prioritized_tbl_oi_all = get_top_n_lr_pairs(multinichenet_output$prioritization_tables, 25, rank_per_group = TRUE)
+# Gráfico circos de las uniones prioritarias, las 25 predicciones principales entre los contrastes, emisores y receptores de interés
+prioritized_tbl_oi_all <- get_top_n_lr_pairs(multinichenet_output$prioritization_tables, 25, rank_per_group = TRUE)
 
-prioritized_tbl_oi = multinichenet_output$prioritization_tables$group_prioritization_tbl %>%
+prioritized_tbl_oi <- multinichenet_output$prioritization_tables$group_prioritization_tbl %>%
   filter(id %in% prioritized_tbl_oi_all$id) %>%
   distinct(id, sender, receiver, ligand, receptor, group) %>% left_join(prioritized_tbl_oi_all)
 prioritized_tbl_oi$prioritization_score[is.na(prioritized_tbl_oi$prioritization_score)] = 0
 
-senders_receivers = union(prioritized_tbl_oi$sender %>% unique(), prioritized_tbl_oi$receiver %>% unique()) %>% sort()
+senders_receivers <- union(prioritized_tbl_oi$sender %>% unique(), prioritized_tbl_oi$receiver %>% unique()) %>% sort()
 
-colors_sender = RColorBrewer::brewer.pal(n = length(senders_receivers), name = 'Spectral') %>% magrittr::set_names(senders_receivers)
-colors_receiver = RColorBrewer::brewer.pal(n = length(senders_receivers), name = 'Spectral') %>% magrittr::set_names(senders_receivers)
+colors_sender <- RColorBrewer::brewer.pal(n = length(senders_receivers), name = 'Spectral') %>% magrittr::set_names(senders_receivers)
+colors_receiver <- RColorBrewer::brewer.pal(n = length(senders_receivers), name = 'Spectral') %>% magrittr::set_names(senders_receivers)
 
-circos_list = make_circos_group_comparison(prioritized_tbl_oi, colors_sender, colors_receiver)
+circos_list <- make_circos_group_comparison(prioritized_tbl_oi, colors_sender, colors_receiver)
 
-# Red de regulación intercelular. Las uniones son ligando-objetivo (uniones de regulación génica) y no interacciones proteina-proteina de ligando-receptor
+# Red de regulación intercelular. Las uniones son ligando-diana (uniones de regulación génica) y no interacciones proteina-proteina de ligando-receptor
 prioritized_tbl_oi = get_top_n_lr_pairs(prioritization_tables, 25, rank_per_group = TRUE)
 
 lr_target_prior_cor_filtered = prioritization_tables$group_prioritization_tbl$group %>% unique() %>% lapply(function(group_oi){
@@ -201,31 +201,6 @@ lr_target_prior_cor_filtered = prioritization_tables$group_prioritization_tbl$gr
   lr_target_prior_cor_filtered_down = lr_target_prior_cor_filtered %>% filter(direction_regulation == "down") %>% filter( (rank_of_target < top_n_target) & (pearson < -0.50 | spearman < -0.50))
   lr_target_prior_cor_filtered = bind_rows(lr_target_prior_cor_filtered_up, lr_target_prior_cor_filtered_down)
 }) %>% bind_rows()
-
-colors_sender["Epi.Glandular.secretory"] = "pink" # El amarillo original no se distingue bien
-graph_plot = make_ggraph_ligand_target_links(lr_target_prior_cor_filtered = lr_target_prior_cor_filtered, prioritized_tbl_oi = prioritized_tbl_oi, colors = colors_sender)
-graph_plot$plot
-
-
-
-
-############
-lr_target_prior_cor_filtered = prioritization_tables$group_prioritization_tbl$group %>% unique() %>% lapply(function(group_oi){
-  lr_target_prior_cor_filtered = multinichenet_output$lr_target_prior_cor %>% inner_join(ligand_activities_targets_DEgenes$ligand_activities %>% distinct(ligand, target, direction_regulation, contrast)) %>% inner_join(contrast_tbl) %>% filter(group == group_oi)
-  lr_target_prior_cor_filtered_up = lr_target_prior_cor_filtered %>% filter(direction_regulation == "up") %>% filter( (target == "PGR" | target == "ESR1") & (pearson > 0.50 | spearman > 0.50) )
-  lr_target_prior_cor_filtered_down = lr_target_prior_cor_filtered %>% filter(direction_regulation == "down") %>% filter( (target == "PGR" | target == "ESR1") & (pearson > 0.50 | spearman > 0.50) )
-  lr_target_prior_cor_filtered = bind_rows(lr_target_prior_cor_filtered_up, lr_target_prior_cor_filtered_down)
-}) %>% bind_rows()
-
-id_PGR_ESR1 <- (lr_target_prior_cor_filtered %>% filter(target == "PGR" | target == "ESR1")) %>% select(id) 
-
-prioritized_tbl_oi = multinichenet_output$prioritization_tables$group_prioritization_tbl %>%
-  filter(id %in% lr_target_prior_cor_filtered$id) %>%
-  distinct(id, sender, receiver, ligand, receptor, group) 
-
-
-prioritized_tbl_oi <- prioritized_tbl_oi %>% filter(id %in% id_PGR_ESR1$id)
-lr_target_prior_cor_filtered <- lr_target_prior_cor_filtered %>% filter(id %in% id_PGR_ESR1$id) %>% filter(target == "PGR" | target == "ESR1")
 
 colors_sender["Epi.Glandular.secretory"] = "pink" # El amarillo original no se distingue bien
 graph_plot = make_ggraph_ligand_target_links(lr_target_prior_cor_filtered = lr_target_prior_cor_filtered, prioritized_tbl_oi = prioritized_tbl_oi, colors = colors_sender)
