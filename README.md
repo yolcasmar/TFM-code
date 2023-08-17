@@ -1,11 +1,11 @@
 # Código
-Los scripts se encuentran en el directorio Codigo numerados según el orden de aparición en la metodología del TFM.
+Los scripts se encuentran en el directorio *Codigo* numerados según el orden de aparición en la metodología del TFM.
 
 Siendo el 01 el código empleado en el apartado 3.4.1, el 02 en el apartado 3.4.2, el 03 en el 3.4.3, el 04 en 3l 3.4.4 y el 05 en el 3.4.5.
 
-El script my_generate_priorization_tables_function.R contiene la modificación de la función original del paquete MultiNicheNet y se usa en el script 05.
+El script *my_generate_priorization_tables_function.R* contiene la modificación de la función original del paquete MultiNicheNet y se usa en el script 05.
 # Figuras R
-Las figuras que aparecen en los resultados del TFM se encuentran en el directorio Figuras R.
+Las figuras que aparecen en los resultados del TFM se encuentran en el directorio *Figuras R*.
 
 Dentro se distribuyen en subdirectorios dependiendo del script que se ha empleado para obtenerlas. Dentro de estos subdirectorios se encuentran más subdirectorios para facilitar la búsqueda de cada Figura.
 
@@ -18,13 +18,13 @@ El directorio *nichenet_niches*, que corresponde al apartado 4.4., contiene: el 
 El directorio *nichenet_seurat*, que corresponde al apartado 4.3., contiene: el subdirectorio *seurat epi-stroma* con el gráfico combinado y el mapa de calor ligando-receptor mencionados en el trabajo (considerando los epitelios como emisores y el estroma como receptor); y el subdirectorio *seurat stroma-epi* con los mismos gráficos pero considerando el estroma como emisor y los epitelios como receptores. 
 
 # Code
-Scripts are in Codigo directory numbered according to the order of appearance in the TFM methodology.
+Scripts are in *Codigo* directory numbered according to the order of appearance in the TFM methodology.
 
 Being the 01 the code employed in section 3.4.1, the 02 in section 3.4.2, the 03, in 3.4.3, the 04 in 3.4.4 and the 05 in 3.4.5.
 
-The script my_generate_priorization_tables_function.R contains the original function modification from the MultiNicheNet package and is used in script 05.
+The script *my_generate_priorization_tables_function.R* contains the original function modification from the MultiNicheNet package and is used in script 05.
 # R Figures
-The figures that appear in the results of the TFM are found in the R Figures directory.
+The figures that appear in the results of the TFM are found in the *Figuras R* directory.
 
 They are distributed inside in subdirectories depending on the script that has been used to obtain them. Within these subdirectories there are more subdirectories to facilitate the search for each Figure.
 
